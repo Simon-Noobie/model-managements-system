@@ -26,4 +26,4 @@ class ModelManagement(models.Model):
         ordering = ['created_at']
 
     def __str__(self):
-        return self.name
+        return self.model_name  # Fixed: was self.name
