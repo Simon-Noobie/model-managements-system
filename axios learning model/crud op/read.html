@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Read Model Data</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.0/axios.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .search-box {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        input[type="number"] {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            width: 200px;
+            margin-right: 10px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background-color: #0056b3;
+        }
+        
+        .model-info {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .info-row {
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        
+        .label {
+            font-weight: bold;
+            color: #555;
+            display: inline-block;
+            width: 120px;
+        }
+        
+        .value {
+            color: #333;
+        }
+        
+        .list-items {
+            display: inline-block;
+        }
+        
+        .list-items span {
+            background-color: #e9ecef;
+            padding: 4px 8px;
+            margin: 2px;
+            border-radius: 3px;
+            font-size: 14px;
+            display: inline-block;
+        }
+        
+        .error {
+            color: #dc3545;
+            background-color: #f8d7da;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #007bff;
+            margin-top: 20px;
+        }
+        
+        .no-data {
+            color: #6c757d;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Read Model Data</h1>
+        
+        <div class="search-box">
+            <input type="number" id="modelId" placeholder="Enter Model ID" min="1">
+            <button onclick="fetchModel()">Get Model</button>
+        </div>
+        
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const API_URL = 'http://127.0.0.1:8000/api/models/';
+        
+        async function fetchModel() {
+            const modelId = document.getElementById('modelId').value;
+            const resultDiv = document.getElementById('result');
+            
+            if (!modelId) {
+                showError('Please enter a Model ID');
+                return;
+            }
+            
+            // Show loading
+            resultDiv.innerHTML = '<div class="loading">Loading...</div>';
+            
+            try {
+                const response = await axios.get(API_URL);
+                const models = response.data;
+                const model = models.find(m => m.model_id == modelId);
+                
+                if (!model) {
+                    showError(`Model with ID ${modelId} not found`);
+                    return;
+                }
+                
+                displayModel(model);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Failed to fetch data. Make sure the server is running.');
+            }
+        }
+        
+        function displayModel(model) {
+            const resultDiv = document.getElementById('result');
+            const createdDate = new Date(model.created_at).toLocaleString();
+            
+            const html = `
+                <div class="model-info">
+                    <div class="info-row">
+                        <span class="label">Model ID:</span>
+                        <span class="value">${model.model_id}</span>
+                    </div>
+                    
+                    <div class="info-row">
+                        <span class="label">Model Name:</span>
+                        <span class="value">${model.model_name}</span>
+                    </div>
+                    
+                    <div class="info-row">
+                        <span class="label">Created:</span>
+                        <span class="value">${createdDate}</span>
+                    </div>
+                    
+                    <div class="info-row">
+                        <span class="label">Features:</span>
+                        <div class="list-items">
+                            ${model.feature && model.feature.length > 0 
+                                ? model.feature.map(f => `<span>${f}</span>`).join('')
+                                : '<span class="no-data">No features</span>'
+                            }
+                        </div>
+                    </div>
+                    
+                    <div class="info-row">
+                        <span class="label">Targets:</span>
+                        <div class="list-items">
+                            ${model.target && model.target.length > 0 
+                                ? model.target.map(t => `<span>${t}</span>`).join('')
+                                : '<span class="no-data">No targets</span>'
+                            }
+                        </div>
+                    </div>
+                    
+                    <div class="info-row">
+                        <span class="label">Data Types:</span>
+                        <div class="list-items">
+                            ${model.datatype && model.datatype.length > 0 
+                                ? model.datatype.map(d => `<span>${d}</span>`).join('')
+                                : '<span class="no-data">No data types</span>'
+                            }
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            resultDiv.innerHTML = html;
+        }
+        
+        function showError(message) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `<div class="error">${message}</div>`;
+        }
+        
+        // Allow Enter key to search
+        document.getElementById('modelId').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                fetchModel();
+            }
+        });
+    </script>
+</body>
+</html>

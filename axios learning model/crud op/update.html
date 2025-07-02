@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update Model</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        .input-group { margin-bottom: 10px; }
+        .remove-btn { margin-left: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4">Update Model</h1>
+        
+        <!-- Model Search Section -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Search Model to Update</h5>
+            </div>
+            <div class="card-body">
+                <button type="button" class="btn btn-info mb-3" id="loadModelsBtn">Load All Models</button>
+                <div id="modelsList"></div>
+            </div>
+        </div>
+
+        <!-- Update Form -->
+        <form id="updateModelForm" class="mb-4">
+            <div class="mb-3">
+                <label for="modelId" class="form-label">Model ID</label>
+                <div class="input-group">
+                    <input type="number" class="form-control" id="modelId" required>
+                    <button type="button" class="btn btn-outline-secondary" id="fetchModelBtn">
+                        Load Model Data
+                    </button>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label for="modelName" class="form-label">Model Name</label>
+                <input type="text" class="form-control" id="modelName" required maxlength="255">
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Features</label>
+                <div id="featureFields">
+                    <div class="input-group">
+                        <input type="text" class="form-control feature-input" name="feature" required>
+                        <button type="button" class="btn btn-success add-btn" data-type="feature">+</button>
+                    </div>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Targets</label>
+                <div id="targetFields">
+                    <div class="input-group">
+                        <input type="text" class="form-control target-input" name="target" required>
+                        <button type="button" class="btn btn-success add-btn" data-type="target">+</button>
+                    </div>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Data Types</label>
+                <div id="datatypeFields">
+                    <div class="input-group">
+                        <input type="text" class="form-control datatype-input" name="datatype" required>
+                        <button type="button" class="btn btn-success add-btn" data-type="datatype">+</button>
+                    </div>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Update Model</button>
+            <button type="button" class="btn btn-secondary" id="clearFormBtn">Clear Form</button>
+            <a href="../index.html" class="btn btn-outline-secondary">Back to Home</a>
+        </form>
+        <div id="res"></div>
+    </div>
+
+    <script>
+        // API Base URL - adjust this to match your Django server
+        const API_BASE_URL = 'http://127.0.0.1:8000/api/models/';
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('update.html loaded');
+
+            const updateModelForm = document.getElementById('updateModelForm');
+            const loadModelsBtn = document.getElementById('loadModelsBtn');
+            const fetchModelBtn = document.getElementById('fetchModelBtn');
+            const clearFormBtn = document.getElementById('clearFormBtn');
+            const modelIdInput = document.getElementById('modelId');
+
+            if (!updateModelForm) {
+                console.error('Error: updateModelForm not found');
+                showError('Form element not found. Check HTML structure.');
+                return;
+            }
+
+            // Initialize button listeners
+            updateButtonListeners();
+
+            // Load all models
+            loadModelsBtn.addEventListener('click', async function() {
+                try {
+                    showLoading('Loading models...');
+                    const response = await axios.get(API_BASE_URL);
+                    displayModelsList(response.data);
+                    clearMessages();
+                } catch (error) {
+                    console.error('Error loading models:', error);
+                    showError('Failed to load models: ' + (error.response?.data?.message || error.message));
+                }
+            });
+
+            // Fetch specific model for editing
+            fetchModelBtn.addEventListener('click', async function() {
+                const modelId = modelIdInput.value;
+                if (!modelId) {
+                    showError('Please enter a Model ID first.');
+                    return;
+                }
+                await loadModelForEdit(modelId);
+            });
+
+            // Clear form
+            clearFormBtn.addEventListener('click', function() {
+                clearForm();
+                clearMessages();
+            });
+
+            // Handle form submission
+            updateModelForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                console.log('Update Model form submitted');
+                
+                const modelId = document.getElementById('modelId').value;
+                const modelName = document.getElementById('modelName').value;
+                const features = Array.from(document.querySelectorAll('.feature-input'))
+                    .map(input => input.value)
+                    .filter(value => value.trim() !== '');
+                const targets = Array.from(document.querySelectorAll('.target-input'))
+                    .map(input => input.value)
+                    .filter(value => value.trim() !== '');
+                const datatypes = Array.from(document.querySelectorAll('.datatype-input'))
+                    .map(input => input.value)
+                    .filter(value => value.trim() !== '');
+                
+                if (!modelId) {
+                    showError('Please enter a valid Model ID.');
+                    return;
+                }
+                if (!modelName) {
+                    showError('Please enter a valid model name.');
+                    return;
+                }
+
+                const formData = {
+                    model_id: parseInt(modelId),
+                    model_name: modelName,
+                    feature: features,
+                    target: targets,
+                    datatype: datatypes
+                };
+
+                try {
+                    showLoading('Updating model...');
+                    
+                    const response = await axios.put(API_BASE_URL, formData, {
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    console.log('Model updated successfully:', response.data);
+                    showSuccess('Model updated successfully!', response.data);
+                    
+                } catch (error) {
+                    console.error('Error updating model:', error);
+                    if (error.response) {
+                        if (error.response.data?.error) {
+                            showError(`Error ${error.response.status}: ${error.response.data.error}`);
+                        } else if (error.response.data) {
+                            // Handle validation errors
+                            let errorMsg = 'Validation errors:<br>';
+                            Object.keys(error.response.data).forEach(key => {
+                                if (Array.isArray(error.response.data[key])) {
+                                    errorMsg += `${key}: ${error.response.data[key].join(', ')}<br>`;
+                                } else {
+                                    errorMsg += `${key}: ${error.response.data[key]}<br>`;
+                                }
+                            });
+                            showError(errorMsg);
+                        } else {
+                            showError(`Error ${error.response.status}: Failed to update model`);
+                        }
+                    } else {
+                        showError('Network error: ' + error.message);
+                    }
+                }
+            });
+
+            function updateButtonListeners() {
+                // Remove existing listeners to prevent duplicates
+                document.querySelectorAll('.add-btn').forEach(button => {
+                    button.removeEventListener('click', handleAddButtonClick);
+                    button.addEventListener('click', handleAddButtonClick);
+                });
+                document.querySelectorAll('.remove-btn').forEach(button => {
+                    button.removeEventListener('click', handleRemoveButtonClick);
+                    button.addEventListener('click', handleRemoveButtonClick);
+                });
+            }
+
+            function handleAddButtonClick() {
+                const type = this.getAttribute('data-type');
+                const container = document.getElementById(`${type}Fields`);
+                const currentGroup = this.parentNode;
+
+                // Replace the + button with a − button in the current field
+                const removeButton = document.createElement('button');
+                removeButton.type = 'button';
+                removeButton.className = 'btn btn-danger remove-btn';
+                removeButton.textContent = '−';
+                currentGroup.replaceChild(removeButton, this);
+
+                // Create a new input field with a + button
+                const newGroup = document.createElement('div');
+                newGroup.className = 'input-group';
+                newGroup.innerHTML = `
+                    <input type="text" class="form-control ${type}-input" name="${type}" required>
+                    <button type="button" class="btn btn-success add-btn" data-type="${type}">+</button>
+                `;
+                container.appendChild(newGroup);
+
+                // Update listeners for all buttons
+                updateButtonListeners();
+            }
+
+            function handleRemoveButtonClick() {
+                const container = this.parentNode.parentNode;
+                this.parentNode.remove();
+                
+                // If no inputs left, add one
+                if (container.children.length === 0) {
+                    const type = container.id.replace('Fields', '');
+                    const newGroup = document.createElement('div');
+                    newGroup.className = 'input-group';
+                    newGroup.innerHTML = `
+                        <input type="text" class="form-control ${type}-input" name="${type}" required>
+                        <button type="button" class="btn btn-success add-btn" data-type="${type}">+</button>
+                    `;
+                    container.appendChild(newGroup);
+                    updateButtonListeners();
+                }
+            }
+
+            async function loadModelForEdit(modelId) {
+                try {
+                    showLoading('Loading model data...');
+                    const response = await axios.get(API_BASE_URL);
+                    const models = response.data;
+                    const model = models.find(m => m.model_id == modelId);
+                    
+                    if (model) {
+                        populateFormWithModel(model);
+                        showSuccess('Model data loaded successfully!');
+                    } else {
+                        showError('Model not found');
+                    }
+                } catch (error) {
+                    console.error('Error loading model:', error);
+                    showError('Error loading model data: ' + (error.response?.data?.message || error.message));
+                }
+            }
+
+            function populateFormWithModel(model) {
+                // Set basic fields
+                document.getElementById('modelId').value = model.model_id;
+                document.getElementById('modelName').value = model.model_name;
+
+                // Populate features
+                populateArrayField('feature', model.feature || []);
+                
+                // Populate targets
+                populateArrayField('target', model.target || []);
+                
+                // Populate datatypes
+                populateArrayField('datatype', model.datatype || []);
+            }
+
+            function populateArrayField(fieldType, values) {
+                const container = document.getElementById(`${fieldType}Fields`);
+                container.innerHTML = ''; // Clear existing fields
+
+                if (values.length === 0) {
+                    // Add one empty field if no values
+                    values = [''];
+                }
+
+                values.forEach((value, index) => {
+                    const newGroup = document.createElement('div');
+                    newGroup.className = 'input-group';
+                    
+                    const isLast = index === values.length - 1;
+                    const buttonClass = isLast ? 'btn btn-success add-btn' : 'btn btn-danger remove-btn';
+                    const buttonText = isLast ? '+' : '−';
+                    
+                    newGroup.innerHTML = `
+                        <input type="text" class="form-control ${fieldType}-input" name="${fieldType}" value="${value}" required>
+                        <button type="button" class="${buttonClass}" data-type="${fieldType}">${buttonText}</button>
+                    `;
+                    container.appendChild(newGroup);
+                });
+
+                updateButtonListeners();
+            }
+
+            function displayModelsList(models) {
+                const modelsListDiv = document.getElementById('modelsList');
+                
+                if (models.length === 0) {
+                    modelsListDiv.innerHTML = '<div class="alert alert-info">No models found</div>';
+                    return;
+                }
+
+                let html = '<div class="table-responsive"><table class="table table-striped table-hover">';
+                html += '<thead><tr><th>ID</th><th>Name</th><th>Created</th><th>Features</th><th>Targets</th><th>Action</th></tr></thead><tbody>';
+                
+                models.forEach(model => {
+                    const createdDate = new Date(model.created_at).toLocaleDateString();
+                    const featuresCount = Array.isArray(model.feature) ? model.feature.length : 0;
+                    const targetsCount = Array.isArray(model.target) ? model.target.length : 0;
+                    
+                    html += `<tr>
+                        <td>${model.model_id}</td>
+                        <td>${model.model_name}</td>
+                        <td>${createdDate}</td>
+                        <td>${featuresCount} features</td>
+                        <td>${targetsCount} targets</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary" onclick="selectModelForEdit(${model.model_id})">
+                                Edit
+                            </button>
+                        </td>
+                    </tr>`;
+                });
+                
+                html += '</tbody></table></div>';
+                modelsListDiv.innerHTML = html;
+            }
+
+            function clearForm() {
+                document.getElementById('updateModelForm').reset();
+                
+                // Reset dynamic fields
+                ['feature', 'target', 'datatype'].forEach(fieldType => {
+                    const container = document.getElementById(`${fieldType}Fields`);
+                    container.innerHTML = `
+                        <div class="input-group">
+                            <input type="text" class="form-control ${fieldType}-input" name="${fieldType}" required>
+                            <button type="button" class="btn btn-success add-btn" data-type="${fieldType}">+</button>
+                        </div>
+                    `;
+                });
+                
+                updateButtonListeners();
+            }
+
+            // Make function global for onclick
+            window.selectModelForEdit = function(modelId) {
+                document.getElementById('modelId').value = modelId;
+                loadModelForEdit(modelId);
+            };
+        });
+
+        function showError(message) {
+            document.getElementById('res').innerHTML = `
+                <div class="alert alert-danger">
+                    <h5>Error</h5>
+                    <div>${message}</div>
+                </div>
+            `;
+        }
+
+        function showSuccess(message, data = null) {
+            let html = `
+                <div class="alert alert-success">
+                    <h5>Success</h5>
+                    <p>${message}</p>
+            `;
+            
+            if (data) {
+                html += `<p><strong>Updated Data:</strong></p>
+                         <pre>${JSON.stringify(data, null, 2)}</pre>`;
+            }
+            
+            html += '</div>';
+            document.getElementById('res').innerHTML = html;
+        }
+
+        function showLoading(message) {
+            document.getElementById('res').innerHTML = `
+                <div class="alert alert-info">
+                    <div class="d-flex align-items-center">
+                        <div class="spinner-border spinner-border-sm me-2" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        ${message}
+                    </div>
+                </div>
+            `;
+        }
+
+        function clearMessages() {
+            document.getElementById('res').innerHTML = '';
+        }
+    </script>
+</body>
+</html>
