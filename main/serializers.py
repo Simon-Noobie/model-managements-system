@@ -1,6 +1,6 @@
 from rest_framework import serializers
-
-from .models import ModelManagement  # Replace with your actual model(s)
+import re
+from .models import ModelManagement
 
 class ModelManagementSerializer(serializers.ModelSerializer):
     class Meta:
@@ -24,12 +24,23 @@ class ModelManagementSerializer(serializers.ModelSerializer):
         return value
 
     def validate_model_name(self, value):
-        if ModelManagement.objects.filter(model_name=value).exists():
+        # Check if model with this name already exists (but exclude current instance for updates)
+        existing_query = ModelManagement.objects.filter(model_name=value)
+        if self.instance:
+            existing_query = existing_query.exclude(model_id=self.instance.model_id)
+        
+        if existing_query.exists():
             raise serializers.ValidationError("A model with this name already exists.")
+        
         if not value.strip():
             raise serializers.ValidationError("Name cannot be empty.")
+        
         if len(value) > 255:
             raise serializers.ValidationError("Name cannot exceed 255 characters.")
-        if not value.isalnum():
-            raise serializers.ValidationError("Name must be alphanumeric.")
+        
+        # Allow alphanumeric characters, underscores, hyphens, and spaces
+        # This is more flexible than the original isalnum() check
+        if not re.match(r'^[a-zA-Z0-9_\-\s]+$', value):
+            raise serializers.ValidationError("Name can only contain letters, numbers, underscores, hyphens, and spaces.")
+        
         return value
