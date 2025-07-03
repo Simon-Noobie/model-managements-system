@@ -8,8 +8,25 @@
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 </head>
 <body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">Model Management System</a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3" id="user-info">Welcome!</span>
+                <button class="btn btn-outline-light btn-sm" onclick="logout()">Logout</button>
+            </div>
+        </div>
+    </nav>
+
     <div class="container mt-5">
         <h1 class="mb-4 text-center">Axios Model Management Testing</h1>
+        
+        <!-- Authentication check alert -->
+        <div id="auth-alert" class="alert alert-warning alert-dismissible fade show d-none" role="alert">
+            <strong>Authentication Required!</strong> Please log in to access the API.
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
         <div class="mb-4">
             <a href="crud op/create.html" class="btn btn-success" id="post">Create</a>
             <a href="crud op/read.html" class="btn btn-primary" id="get">Read</a>
@@ -18,5 +35,75 @@
         </div>
         <div id="res"></div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Check authentication on page load
+        window.onload = function() {
+            checkAuthentication();
+        };
+
+        function checkAuthentication() {
+            const token = localStorage.getItem('authToken');
+            const authAlert = document.getElementById('auth-alert');
+            const userInfo = document.getElementById('user-info');
+            
+            if (!token) {
+                authAlert.classList.remove('d-none');
+                userInfo.textContent = 'Not logged in';
+                // Optionally redirect to login page
+                // window.location.href = '/static/login.html';
+            } else {
+                // Set the authorization header for axios
+                axios.defaults.headers.common['Authorization'] = `Token ${token}`;
+                authAlert.classList.add('d-none');
+                
+                // Try to get user info from stored data or make a test request
+                const storedUsername = localStorage.getItem('username');
+                if (storedUsername) {
+                    userInfo.textContent = `Welcome, ${storedUsername}!`;
+                } else {
+                    userInfo.textContent = 'Welcome!';
+                }
+            }
+        }
+
+        function logout() {
+            // Show confirmation dialog
+            if (confirm('Are you sure you want to logout?')) {
+                // Remove token and user data from localStorage
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('username');
+                localStorage.removeItem('user_id');
+                
+                // Remove authorization header
+                delete axios.defaults.headers.common['Authorization'];
+                
+                // Show success message
+                alert('Logged out successfully!');
+                
+                // Redirect to login page
+                window.location.href = '/static/login.html';
+            }
+        }
+
+        // Optional: Add token validation
+        async function validateToken() {
+            try {
+                const response = await axios.get('/api/models/');
+                return true;
+            } catch (error) {
+                if (error.response && error.response.status === 401) {
+                    // Token is invalid, clear it
+                    localStorage.removeItem('authToken');
+                    localStorage.removeItem('username');
+                    localStorage.removeItem('user_id');
+                    delete axios.defaults.headers.common['Authorization'];
+                    return false;
+                }
+                return true; // Other errors don't necessarily mean invalid token
+            }
+        }
+    </script>
 </body>
 </html>

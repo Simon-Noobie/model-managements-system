@@ -16,8 +16,12 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import include, path
+from django.views.static import serve
+from django.conf import settings
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('main.urls')),
+    # Add static file serving at root level
+    path('static/<path:path>', serve, {'document_root': settings.STATICFILES_DIRS[0]}),
 ]
