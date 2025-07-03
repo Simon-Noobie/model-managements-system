@@ -7,5 +7,5 @@ urlpatterns = [
     path('api-auth/', include('rest_framework.urls')),
     path('api/models/', model_management_list, name='model-management-list'),
     path('api/login/', login_api, name='login-api'),
-    path('static/<path:path>/', serve, {'document_root': settings.STATICFILES_DIRS[0]}),
+    path('static/<path:path>', serve, {'document_root': settings.STATICFILES_DIRS[0]}),
 ]

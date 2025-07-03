@@ -41,15 +41,32 @@
                     password: password
                 });
                 errorMessage.classList.add('hidden');
-                // Store token or session info (e.g., in localStorage)
+                
+                // Store token in localStorage
                 localStorage.setItem('authToken', response.data.token);
+                
+                // Set default authorization header for all future requests
+                axios.defaults.headers.common['Authorization'] = `Token ${response.data.token}`;
+                
                 // Redirect to index.html
                 window.location.href = '/static/index.html';
             } catch (error) {
                 errorMessage.classList.remove('hidden');
                 errorMessage.textContent = error.response?.data?.error || 'Login failed. Try again.';
+                console.error('Login error:', error);
             }
         }
+
+        // Check if user is already logged in
+        window.onload = function() {
+            const token = localStorage.getItem('authToken');
+            if (token) {
+                // Set the authorization header
+                axios.defaults.headers.common['Authorization'] = `Token ${token}`;
+                // Redirect to main page
+                window.location.href = '/static/index.html';
+            }
+        };
     </script>
 </body>
 </html>
