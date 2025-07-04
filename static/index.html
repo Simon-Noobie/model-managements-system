@@ -44,7 +44,7 @@
         };
 
         function checkAuthentication() {
-            const token = localStorage.getItem('authToken');
+            const token = localStorage.getItem('token');
             const authAlert = document.getElementById('auth-alert');
             const userInfo = document.getElementById('user-info');
             
@@ -58,13 +58,14 @@
                 axios.defaults.headers.common['Authorization'] = `Token ${token}`;
                 authAlert.classList.add('d-none');
                 
-                // Try to get user info from stored data or make a test request
+                // Set user info text
                 const storedUsername = localStorage.getItem('username');
                 if (storedUsername) {
-                    userInfo.textContent = `Welcome, ${storedUsername}!`;
+                    userInfo.textContent = `Logged in as ${storedUsername}`;
                 } else {
-                    userInfo.textContent = 'Welcome!';
+                    userInfo.textContent = 'Logged in';
                 }
+                // fetchModels();  // Load models after successful login
             }
         }
 
@@ -72,7 +73,7 @@
             // Show confirmation dialog
             if (confirm('Are you sure you want to logout?')) {
                 // Remove token and user data from localStorage
-                localStorage.removeItem('authToken');
+                localStorage.removeItem('token');
                 localStorage.removeItem('username');
                 localStorage.removeItem('user_id');
                 
@@ -83,7 +84,7 @@
                 alert('Logged out successfully!');
                 
                 // Redirect to login page
-                window.location.href = '/static/login.html';
+                window.location.href = '/login-page/';
             }
         }
 
@@ -95,13 +96,41 @@
             } catch (error) {
                 if (error.response && error.response.status === 401) {
                     // Token is invalid, clear it
-                    localStorage.removeItem('authToken');
+                    localStorage.removeItem('token');
                     localStorage.removeItem('username');
                     localStorage.removeItem('user_id');
                     delete axios.defaults.headers.common['Authorization'];
                     return false;
                 }
                 return true; // Other errors don't necessarily mean invalid token
+            }
+        }
+
+        // Fetch model data and display in the #res div
+        async function fetchModels() {
+            try {
+                const response = await axios.get('/api/models/');
+                const data = response.data;
+
+                const resDiv = document.getElementById('res');
+                if (data.length === 0) {
+                    resDiv.innerHTML = '<p class="text-muted">No models available.</p>';
+                    return;
+                }
+
+                const listItems = data.map(item => `
+                    <li class="list-group-item">
+                        <strong>ID:</strong> ${item.model_id} |
+                        <strong>Name:</strong> ${item.model_name} |
+                        <strong>Description:</strong> ${item.model_desc}
+                    </li>
+                `).join('');
+
+                resDiv.innerHTML = `<ul class="list-group">${listItems}</ul>`;
+            } catch (error) {
+                console.error('Error fetching models:', error);
+                document.getElementById('res').innerHTML =
+                    '<p class="text-danger">Failed to fetch model data.</p>';
             }
         }
     </script>

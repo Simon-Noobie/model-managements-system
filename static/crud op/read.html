@@ -129,6 +129,14 @@
     </div>
 
     <script>
+        const token = localStorage.getItem('token');
+        if (token) {
+            axios.defaults.headers.common['Authorization'] = 'Token ' + token;
+        } else {
+            alert("You must be logged in to access this page.");
+            window.location.href = "/login-page/";
+        }
+
         const API_URL = 'http://127.0.0.1:8000/api/models/';
         
         async function fetchModel() {
@@ -142,6 +150,9 @@
             
             // Show loading
             resultDiv.innerHTML = '<div class="loading">Loading...</div>';
+            
+            // Set the Authorization header using token from localStorage
+            axios.defaults.headers.common['Authorization'] = 'Token ' + localStorage.getItem('token');
             
             try {
                 const response = await axios.get(API_URL);
