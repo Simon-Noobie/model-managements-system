@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'rest_framework',  
     'main',
     'rest_framework.authtoken',   
+    'channels'
 ]
 
 MIDDLEWARE = [
@@ -106,6 +107,8 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'modelMngSystem.wsgi.application'
+
+ASGI_APPLICATION = 'modelMngSystem.asgi.application'
 
 
 # Database

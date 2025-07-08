@@ -91,7 +91,7 @@ modelMngSystem/
      ```
    - Or with Daphne:
      ```bash
-     daphne modelMngSystem.asgi:application
+     python3 -m daphne modelMngSystem.asgi:application
      ```
 
 ---
