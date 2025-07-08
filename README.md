@@ -1,57 +1,132 @@
-# model-managements-system
-Model Management System
-=======================
+# Model Management System
 
-Overview
---------
-This is a Django-based Model Management System designed to manage machine learning models. It allows for the creation, storage, and tracking of model metadata including model names, features, target variables, and data types.
+## Overview
 
-Project Structure
------------------
-- `main/`
-  - `__pycache__/` - Compiled Python files
-  - `migrations/` - Database migration files
-    - `__pycache__/` - Compiled migration files
-    - `__init__.py` - Initialization file
-    - `0001_initial.py` - Initial migration
-    - `0002_rename_name_modelma...` - Migration for renaming
-  - `__init__.py` - Initialization file
-  - `admin.py` - Admin panel configurations
-  - `apps.py` - Application configuration
-  - `models.py` - Model definitions (e.g., ModelManagement)
-  - `serializers.py` - Data serializers
-  - `tests.py` - Test cases
-  - `views.py` - View functions
-- `modelMngSystem/`
-  - `__pycache__/` - Compiled Python files
-  - `__init__.py` - Initialization file
-  - `asgi.py` - ASGI configuration
-  - `settings.py` - Project settings
-  - `urls.py` - URL routing
-  - `wsgi.py` - WSGI configuration
-  - `manage.py` - Django management script
+Model Management System is a Django-based web application designed to manage metadata for machine learning models. It provides both a user interface and backend API for creating, storing, and tracking model details such as:
+- Model names
+- Features
+- Target variables
+- Data types
 
-Installation
-------------
-1. Clone the repository.
-2. Navigate to the project directory.
-3. Create a virtual environment: `python -m venv venv`
-4. Activate the virtual environment:
-   - Windows: `venv\Scripts\activate`
-   - Mac/Linux: `source venv/bin/activate`
-5. Install dependencies: `pip install -r requirements.txt` (create this file with required packages).
-6. Apply migrations: `python manage.py migrate`
-7. Run the server: `python manage.py runserver`
+It supports standard CRUD operations through both web pages and REST APIs.
 
-Usage
------
-- Access the admin panel at `/admin` after creating a superuser with `python manage.py createsuperuser`.
-- Manage models via the ModelManagement model defined in `models.py`.
+---
 
-Contributing
-------------
-Feel free to fork the repository and submit pull requests. Ensure to follow the existing code style and include tests.
+## Features
 
-License
--------
-This project is licensed under the MIT License - see the LICENSE file for details.
+- Web-based UI for CRUD operations on ML model metadata
+- REST API built with Django REST Framework
+- Admin panel for managing users and models
+- ASGI support (via Uvicorn or Daphne) for future WebSocket extensions
+
+---
+
+## Project Structure
+
+```
+modelMngSystem/
+├── main/                   # Core Django app
+│   ├── admin.py            # Admin panel configuration
+│   ├── apps.py
+│   ├── models.py           # ModelManagement model
+│   ├── serializers.py      # DRF serializers
+│   ├── urls.py             # App-level routing
+│   ├── views.py            # View logic
+│   ├── tests.py
+│   └── migrations/         # Database migrations
+│
+├── modelMngSystem/         # Project-level configuration
+│   ├── settings.py         # Django settings
+│   ├── urls.py             # Project-level URLs
+│   ├── asgi.py             # ASGI config for async
+│   └── wsgi.py             # WSGI config
+│
+├── static/crud op/         # HTML templates for CRUD UI
+│   ├── create.html
+│   ├── read.html
+│   ├── update.html
+│   └── delete.html
+│
+├── manage.py               # Django CLI entry point
+└── README.md               # Project documentation
+```
+
+---
+
+## Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone <repo-url>
+   cd modelMngSystem
+   ```
+
+2. **Create and activate virtual environment**
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+
+3. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Apply database migrations**
+   ```bash
+   python manage.py migrate
+   ```
+
+5. **Create a superuser (for admin access)**
+   ```bash
+   python manage.py createsuperuser
+   ```
+
+6. **Run development server**
+   > For full async support, use an ASGI server:
+
+   - With Uvicorn:
+     ```bash
+     uvicorn modelMngSystem.asgi:application
+     ```
+   - Or with Daphne:
+     ```bash
+     daphne modelMngSystem.asgi:application
+     ```
+
+---
+
+## Usage
+
+- Visit `http://127.0.0.1:8000/` to access the web interface
+- Visit `/admin/` to access the Django admin dashboard
+- Use CRUD pages:
+  - Create: `/static/crud op/create.html`
+  - Read: `/static/crud op/read.html`
+  - Update: `/static/crud op/update.html`
+  - Delete: `/static/crud op/delete.html`
+- API endpoints:
+  - GET/POST: `/api/models/`
+  - GET/PUT/DELETE: `/api/models/<id>/`
+
+---
+
+## WebSocket Support (Optional/Future Use)
+
+The project includes ASGI configuration for potential real-time features. To prepare:
+- Ensure `ASGI_APPLICATION` is set in `settings.py`:
+  ```python
+  ASGI_APPLICATION = "modelMngSystem.asgi.application"
+  ```
+
+---
+
+## Contributing
+
+Contributions are welcome! Please fork the repo and create a pull request. Follow PEP8 and write tests where applicable.
+
+---
+
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.

@@ -38,7 +38,7 @@
                     localStorage.setItem('username', response.data.username);
                     localStorage.setItem('user_id', response.data.user_id);
                     alert('Login successful!');
-                    window.location.href = "/static/index.html";
+                    window.location.href = "/index/";
                 })
                 .catch(error => {
                     alert('Login failed: ' + (error.response?.data?.error || 'Unknown error'));

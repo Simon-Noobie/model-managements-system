@@ -14,6 +14,9 @@ from django.contrib import messages
 def login_page(request):
     return render(request, 'login.html')
 
+def index_page(request):
+    return render(request, 'index.html')
+
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
