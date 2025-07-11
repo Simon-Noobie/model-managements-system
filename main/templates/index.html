@@ -54,8 +54,7 @@
             if (!token) {
                 authAlert.classList.remove('d-none');
                 userInfo.textContent = 'Not logged in';
-                // Optionally redirect to login page
-                // window.location.href = '/static/login.html';
+                window.location.href = '/login-page/';
             } else {
                 // Set the authorization header for axios
                 axios.defaults.headers.common['Authorization'] = `Token ${token}`;
@@ -68,7 +67,19 @@
                 } else {
                     userInfo.textContent = 'Logged in';
                 }
-                // fetchModels();  // Load models after successful login
+
+                // Establish WebSocket connection
+                let protocol = window.location.protocol === "https:" ? "wss" : "ws";
+                const timeSocket = new WebSocket(protocol + '://' + window.location.host + `/ws/time/?token=${token}`);
+
+                timeSocket.onmessage = function(e) {
+                    const data = JSON.parse(e.data);
+                    document.getElementById("clock").textContent = data.time;
+                };
+
+                timeSocket.onclose = function(e) {
+                    console.error('WebSocket connection closed unexpectedly');
+                };
             }
         }
 
@@ -136,18 +147,6 @@
                     '<p class="text-danger">Failed to fetch model data.</p>';
             }
         }
-    </script>
-    <script>
-    const timeSocket = new WebSocket('ws://' + window.location.host + '/ws/time/');
-
-    timeSocket.onmessage = function(e) {
-        const data = JSON.parse(e.data);
-        document.getElementById("clock").textContent = data.time;
-    };
-
-    timeSocket.onclose = function(e) {
-        console.error('WebSocket connection closed unexpectedly');
-    };
     </script>
 </body>
 </html>
