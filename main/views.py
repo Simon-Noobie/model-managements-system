@@ -17,6 +17,17 @@ def login_page(request):
 def index_page(request):
     return render(request, 'index.html')
 
+def create_page(request):
+        return render(request, 'crud-op/create.html')
+
+def read_page(request):
+    return render(request, 'crud-op/read.html')
+
+def update_page(request):
+    return render(request, 'crud-op/update.html')
+
+def delete_page(request):
+    return render(request, 'crud-op/delete.html')
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -91,17 +102,4 @@ def model_management_list(request):
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-from django.contrib.auth import authenticate
 
-def custom_login_view(request):
-    if request.method == 'POST':
-        username = request.POST.get('username')
-        password = request.POST.get('password')
-        user = authenticate(request, username=username, password=password)
-        if user is not None:
-            login(request, user)
-            return redirect('/static/index.html')  # or another page you want to go to
-        else:
-            messages.error(request, 'Invalid username or password.')
-
-    return render(request, 'login.html')

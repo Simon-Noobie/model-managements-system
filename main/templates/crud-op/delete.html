@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delete Model</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4">Delete Model by ID</h1>
+        
+        <!-- Model Search Section -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5>Search Model</h5>
+            </div>
+            <div class="card-body">
+                <button type="button" class="btn btn-info mb-3" id="loadModelsBtn">Load All Models</button>
+                <div id="modelsList"></div>
+            </div>
+        </div>
+
+        <!-- Delete Form -->
+        <form id="deleteModelForm" class="mb-4">
+            <div class="mb-3">
+                <label for="modelId" class="form-label">Model ID</label>
+                <input type="number" class="form-control" id="modelId" required>
+                <button type="button" class="btn btn-outline-secondary btn-sm mt-2" id="fetchModelBtn">
+                    Fetch Model Details
+                </button>
+            </div>
+            <div id="modelDetails" class="mb-3"></div>
+            <button type="submit" class="btn btn-danger">Delete Model</button>
+            <button onclick="window.location.href='/index/'" class="btn btn-outline-secondary">Back to Home</button>
+        </form>
+        <div id="res"></div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token');
+        if (token) {
+            axios.defaults.headers.common['Authorization'] = 'Token ' + token;
+        } else {
+            alert("You must be logged in to access this page.");
+            window.location.href = "/login-page/";
+        }
+        // API Base URL - adjust this to match your Django server
+        const API_BASE_URL = 'http://127.0.0.1:8000/api/models/';
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('delete.html loaded');
+            
+            const deleteModelForm = document.getElementById('deleteModelForm');
+            const loadModelsBtn = document.getElementById('loadModelsBtn');
+            const fetchModelBtn = document.getElementById('fetchModelBtn');
+            const modelIdInput = document.getElementById('modelId');
+
+            if (!deleteModelForm) {
+                console.error('Error: deleteModelForm not found');
+                showError('Form element not found. Check HTML structure.');
+                return;
+            }
+
+            // Load all models
+            loadModelsBtn.addEventListener('click', async function() {
+                try {
+                    showLoading('Loading models...');
+                    const response = await axios.get(API_BASE_URL);
+                    displayModelsList(response.data);
+                    clearMessages();
+                } catch (error) {
+                    console.error('Error loading models:', error);
+                    showError('Failed to load models: ' + (error.response?.data?.message || error.message));
+                }
+            });
+
+            // Fetch specific model details
+            fetchModelBtn.addEventListener('click', async function() {
+                const modelId = modelIdInput.value;
+                if (!modelId) {
+                    showError('Please enter a Model ID first.');
+                    return;
+                }
+                await fetchModelDetails(modelId);
+            });
+
+            // Handle form submission
+            deleteModelForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                console.log('Delete Model form submitted');
+                
+                const modelId = modelIdInput.value;
+                if (!modelId) {
+                    showError('Please enter a valid Model ID.');
+                    return;
+                }
+
+                if (!confirm(`Are you sure you want to delete model with ID ${modelId}?`)) {
+                    return;
+                }
+
+                try {
+                    showLoading('Deleting model...');
+                    
+                    const response = await axios.delete(API_BASE_URL, {
+                        data: { id: modelId },
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    console.log('Model deleted successfully');
+                    showSuccess(`Model with ID ${modelId} has been deleted successfully.`);
+                    
+                    // Clear form
+                    deleteModelForm.reset();
+                    document.getElementById('modelDetails').innerHTML = '';
+                    
+                } catch (error) {
+                    console.error('Error deleting model:', error);
+                    if (error.response) {
+                        const errorMsg = error.response.data?.error || 'Failed to delete model';
+                        showError(`Error ${error.response.status}: ${errorMsg}`);
+                    } else {
+                        showError('Network error: ' + error.message);
+                    }
+                }
+            });
+
+            // Auto-fetch model details when ID is typed
+            modelIdInput.addEventListener('input', debounce(async function() {
+                const modelId = this.value;
+                if (modelId && modelId.length > 0) {
+                    await fetchModelDetails(modelId);
+                } else {
+                    document.getElementById('modelDetails').innerHTML = '';
+                }
+            }, 500));
+        });
+
+        async function fetchModelDetails(modelId) {
+            try {
+                const response = await axios.get(API_BASE_URL);
+                const models = response.data;
+                const model = models.find(m => m.model_id == modelId);
+                
+                if (model) {
+                    displayModelDetails(model);
+                } else {
+                    document.getElementById('modelDetails').innerHTML = 
+                        '<div class="alert alert-warning">Model not found</div>';
+                }
+            } catch (error) {
+                console.error('Error fetching model details:', error);
+                document.getElementById('modelDetails').innerHTML = 
+                    '<div class="alert alert-danger">Error fetching model details</div>';
+            }
+        }
+
+        function displayModelsList(models) {
+            const modelsListDiv = document.getElementById('modelsList');
+            
+            if (models.length === 0) {
+                modelsListDiv.innerHTML = '<div class="alert alert-info">No models found</div>';
+                return;
+            }
+
+            let html = '<div class="table-responsive"><table class="table table-striped table-hover">';
+            html += '<thead><tr><th>ID</th><th>Name</th><th>Created</th><th>Features</th><th>Targets</th><th>Action</th></tr></thead><tbody>';
+            
+            models.forEach(model => {
+                const createdDate = new Date(model.created_at).toLocaleDateString();
+                const featuresCount = Array.isArray(model.feature) ? model.feature.length : 0;
+                const targetsCount = Array.isArray(model.target) ? model.target.length : 0;
+                
+                html += `<tr>
+                    <td>${model.model_id}</td>
+                    <td>${model.model_name}</td>
+                    <td>${createdDate}</td>
+                    <td>${featuresCount} features</td>
+                    <td>${targetsCount} targets</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" onclick="selectModel(${model.model_id})">
+                            Select
+                        </button>
+                    </td>
+                </tr>`;
+            });
+            
+            html += '</tbody></table></div>';
+            modelsListDiv.innerHTML = html;
+        }
+
+        function displayModelDetails(model) {
+            const detailsDiv = document.getElementById('modelDetails');
+            
+            let html = '<div class="card"><div class="card-header"><h6>Model Details</h6></div><div class="card-body">';
+            html += `<p><strong>ID:</strong> ${model.model_id}</p>`;
+            html += `<p><strong>Name:</strong> ${model.model_name}</p>`;
+            html += `<p><strong>Created:</strong> ${new Date(model.created_at).toLocaleString()}</p>`;
+            
+            if (model.feature && model.feature.length > 0) {
+                html += `<p><strong>Features:</strong> ${model.feature.join(', ')}</p>`;
+            }
+            
+            if (model.target && model.target.length > 0) {
+                html += `<p><strong>Targets:</strong> ${model.target.join(', ')}</p>`;
+            }
+            
+            if (model.datatype && model.datatype.length > 0) {
+                html += `<p><strong>Data Types:</strong> ${model.datatype.join(', ')}</p>`;
+            }
+            
+            html += '</div></div>';
+            detailsDiv.innerHTML = html;
+        }
+
+        function selectModel(modelId) {
+            document.getElementById('modelId').value = modelId;
+            fetchModelDetails(modelId);
+        }
+
+        function showError(message) {
+            document.getElementById('res').innerHTML = `
+                <div class="alert alert-danger">
+                    <h5>Error</h5>
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+
+        function showSuccess(message) {
+            document.getElementById('res').innerHTML = `
+                <div class="alert alert-success">
+                    <h5>Success</h5>
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+
+        function showLoading(message) {
+            document.getElementById('res').innerHTML = `
+                <div class="alert alert-info">
+                    <div class="d-flex align-items-center">
+                        <div class="spinner-border spinner-border-sm me-2" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        ${message}
+                    </div>
+                </div>
+            `;
+        }
+
+        function clearMessages() {
+            document.getElementById('res').innerHTML = '';
+        }
+
+        // Debounce function to limit API calls
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+    </script>
+</body>
+</html>
