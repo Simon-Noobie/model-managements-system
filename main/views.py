@@ -3,17 +3,17 @@ from .forms import UserRegistrationForm
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
-from django.contrib.auth import authenticate
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.authentication import TokenAuthentication
 from .models import ModelManagement, UserProfile
 from .serializers import ModelManagementSerializer
 from django.shortcuts import render, redirect
-from django.contrib.auth import login
 from django.contrib import messages
-
+from django.views.generic.base import TemplateView
 from django.contrib.auth import authenticate, login
+from django.contrib.auth.mixins import LoginRequiredMixin
+from .mixins import RestrictedAccessMixin
 
 def login_page(request):
     if request.method == 'POST':
@@ -28,23 +28,21 @@ def login_page(request):
             messages.error(request, 'Invalid username or password.')
     return render(request, 'login.html')
 
-def index_page(request):
-    return render(request, 'index.html')
+class index_page(LoginRequiredMixin, RestrictedAccessMixin, TemplateView):
+    template_name = 'index.html'
 
-def create_page(request):
-        return render(request, 'crud-op/create.html')
+class create_page(LoginRequiredMixin, RestrictedAccessMixin, TemplateView):
+    template_name = 'crud-op/create.html'
 
-def read_page(request):
-    return render(request, 'crud-op/read.html')
+class read_page(LoginRequiredMixin, RestrictedAccessMixin, TemplateView):
+    template_name = 'crud-op/read.html'
 
-def update_page(request):
-    return render(request, 'crud-op/update.html')
+class update_page(LoginRequiredMixin, RestrictedAccessMixin, TemplateView):
+    template_name = 'crud-op/update.html'
 
-def delete_page(request):
-    return render(request, 'crud-op/delete.html')
+class delete_page(LoginRequiredMixin, RestrictedAccessMixin, TemplateView):
+    template_name = 'crud-op/delete.html'
 
-
-# Registration view for /register/
 def register_user(request):
     if request.method == 'POST':
         form = UserRegistrationForm(request.POST)
@@ -65,7 +63,7 @@ def register_user(request):
                 user=user,
                 name=name,
                 email=email,
-                password=password  # WARNING: still plaintext
+                password=password
             )
             profile.save()
 
@@ -93,11 +91,15 @@ def login_api(request):
         }, status=status.HTTP_200_OK)
     return Response({"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
 
-
 @api_view(['GET', 'POST', 'DELETE', 'PUT'])
 @permission_classes([IsAuthenticated])
 @authentication_classes([TokenAuthentication])
 def model_management_list(request):
+    # Check permissions for non-superusers on restricted methods
+    if not request.user.is_superuser and request.method in ['DELETE', 'PUT']:
+        return Response({"error": "You don't have permission to perform this action."},
+                       status=status.HTTP_403_FORBIDDEN)
+
     if request.method == 'GET':
         try:
             models = ModelManagement.objects.all()
